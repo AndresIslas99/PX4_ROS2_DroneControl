@@ -1,0 +1,73 @@
+# ROS 2 Build Artifacts
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+.eggs/
+dist/
+.installed.cfg
+
+# Virtual environments
+venv/
+ENV/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.cproject
+.pydevproject
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/tmp/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Testing
+.pytest_cache/
+.tox/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Compiled C++ files
+*.o
+*.a
+*.dSYM/
+
+# Gazebo
+.gazebo/
+
+# ROS bags
+*.bag
+*.db3
+
+# Core dumps
+core
+
+# Editor backups
+*.bak
+*.orig
+
+# Package-specific ignores
+colcon.meta

@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PX4 Web Ground Control Station</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+            padding: 15px 30px;
+            border-bottom: 2px solid #e94560;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: #e94560;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #555;
+            transition: all 0.3s;
+        }
+
+        .status-indicator.connected {
+            background: #2ecc71;
+            box-shadow: 0 0 10px #2ecc71;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 350px 1fr 350px;
+            grid-template-rows: calc(100vh - 70px);
+            gap: 15px;
+            padding: 15px;
+        }
+
+        .panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+        }
+
+        .panel h2 {
+            color: #e94560;
+            font-size: 18px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #0f3460;
+        }
+
+        .telemetry-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin: 8px 0;
+            background: #0f3460;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        .telemetry-item:hover {
+            background: #1a4d7a;
+        }
+
+        .telemetry-label {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .telemetry-value {
+            color: #2ecc71;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .telemetry-value.warning {
+            color: #f39c12;
+        }
+
+        .telemetry-value.danger {
+            color: #e74c3c;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #27ae60;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d68910;
+        }
+
+        .btn-info {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #2980b9;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-feed {
+            width: 100%;
+            height: auto;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .video-placeholder {
+            color: #666;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-badge.armed {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .status-badge.disarmed {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .attitude-display {
+            text-align: center;
+            padding: 20px;
+            background: #0f3460;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .attitude-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .attitude-item {
+            text-align: center;
+        }
+
+        .attitude-value {
+            font-size: 24px;
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .attitude-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+
+        .altitude-indicator {
+            position: relative;
+            height: 200px;
+            width: 60px;
+            background: #0f3460;
+            border-radius: 30px;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+
+        .altitude-fill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: linear-gradient(to top, #2ecc71, #3498db);
+            transition: height 0.3s;
+        }
+
+        .altitude-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            z-index: 10;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚁 PX4 Web Ground Control Station</h1>
+        <div class="connection-status">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <span id="connectionText">Connecting...</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Left Panel: Telemetry -->
+        <div class="panel">
+            <h2>📊 Telemetry</h2>
+
+            <div class="telemetry-item">
+                <span class="telemetry-label">Status</span>
+                <span class="status-badge disarmed" id="armedStatus">DISARMED</span>
+            </div>
+
+            <div class="telemetry-item">
+                <span class="telemetry-label">Flight Mode</span>
+                <span class="telemetry-value" id="flightMode">Unknown</span>
+            </div>
+
+            <div class="altitude-indicator">
+                <div class="altitude-fill" id="altitudeFill"></div>
+                <div class="altitude-text" id="altitudeText">0.0m</div>
+            </div>
+
+            <h3 style="color: #e94560; margin-top: 20px; margin-bottom: 10px;">Position (NED)</h3>
+            <div class="telemetry-item">
+                <span class="telemetry-label">X (North)</span>
+                <span class="telemetry-value" id="posX">0.00 m</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">Y (East)</span>
+                <span class="telemetry-value" id="posY">0.00 m</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">Z (Down)</span>
+                <span class="telemetry-value" id="posZ">0.00 m</span>
+            </div>
+
+            <h3 style="color: #e94560; margin-top: 20px; margin-bottom: 10px;">Velocity</h3>
+            <div class="telemetry-item">
+                <span class="telemetry-label">VX</span>
+                <span class="telemetry-value" id="velX">0.00 m/s</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">VY</span>
+                <span class="telemetry-value" id="velY">0.00 m/s</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">VZ</span>
+                <span class="telemetry-value" id="velZ">0.00 m/s</span>
+            </div>
+
+            <h3 style="color: #e94560; margin-top: 20px; margin-bottom: 10px;">Battery</h3>
+            <div class="telemetry-item">
+                <span class="telemetry-label">Voltage</span>
+                <span class="telemetry-value" id="battVoltage">0.0 V</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">Percentage</span>
+                <span class="telemetry-value" id="battPercent">0%</span>
+            </div>
+
+            <h3 style="color: #e94560; margin-top: 20px; margin-bottom: 10px;">GPS</h3>
+            <div class="telemetry-item">
+                <span class="telemetry-label">Satellites</span>
+                <span class="telemetry-value" id="gpsSats">0</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">Latitude</span>
+                <span class="telemetry-value" id="gpsLat">0.000000</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">Longitude</span>
+                <span class="telemetry-value" id="gpsLon">0.000000</span>
+            </div>
+        </div>
+
+        <!-- Center Panel: Remote Control & Mission Planning -->
+        <div class="panel">
+            <h2>🎮 Remote Control</h2>
+
+            <!-- Virtual Joystick -->
+            <div style="background: #0f3460; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 15px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 5px;">ALTITUDE</div>
+                        <button onclick="moveAltitude(1)" style="width: 60px; height: 40px; margin: 2px; background: #2ecc71; border: none; border-radius: 5px; color: white; font-size: 18px; cursor: pointer;">▲</button>
+                        <div style="font-size: 11px; color: #2ecc71; margin-top: 3px;">UP</div>
+                        <button onclick="moveAltitude(-1)" style="width: 60px; height: 40px; margin: 2px; background: #e74c3c; border: none; border-radius: 5px; color: white; font-size: 18px; cursor: pointer;">▼</button>
+                        <div style="font-size: 11px; color: #e74c3c;">DOWN</div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 10px;">HORIZONTAL</div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 50px); gap: 5px;">
+                            <div></div>
+                            <button onclick="moveHorizontal(0, 5)" style="background: #3498db; border: none; border-radius: 5px; color: white; font-size: 20px; height: 50px; cursor: pointer;">↑</button>
+                            <div></div>
+                            <button onclick="moveHorizontal(-5, 0)" style="background: #3498db; border: none; border-radius: 5px; color: white; font-size: 20px; height: 50px; cursor: pointer;">←</button>
+                            <button onclick="stopMovement()" style="background: #e94560; border: none; border-radius: 5px; color: white; font-size: 14px; height: 50px; cursor: pointer;">⬛</button>
+                            <button onclick="moveHorizontal(5, 0)" style="background: #3498db; border: none; border-radius: 5px; color: white; font-size: 20px; height: 50px; cursor: pointer;">→</button>
+                            <div></div>
+                            <button onclick="moveHorizontal(0, -5)" style="background: #3498db; border: none; border-radius: 5px; color: white; font-size: 20px; height: 50px; cursor: pointer;">↓</button>
+                            <div></div>
+                        </div>
+                        <div style="font-size: 10px; color: #666; margin-top: 5px;">N/E/S/W (+STOP)</div>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 5px;">YAW</div>
+                        <button onclick="rotateYaw(30)" style="width: 60px; height: 40px; margin: 2px; background: #9b59b6; border: none; border-radius: 5px; color: white; font-size: 18px; cursor: pointer;">↻</button>
+                        <div style="font-size: 11px; color: #9b59b6; margin-top: 3px;">CCW</div>
+                        <button onclick="rotateYaw(-30)" style="width: 60px; height: 40px; margin: 2px; background: #9b59b6; border: none; border-radius: 5px; color: white; font-size: 18px; cursor: pointer;">↺</button>
+                        <div style="font-size: 11px; color: #9b59b6;">CW</div>
+                    </div>
+                </div>
+                <div style="font-size: 11px; color: #666; text-align: center;">Movement in meters (5m horizontal, 1m vertical, 30° rotation)</div>
+            </div>
+
+            <!-- Mission Planner -->
+            <h2 style="margin-top: 20px;">📍 Mission Planner</h2>
+            <div style="background: #0f3460; padding: 15px; border-radius: 8px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="number" id="waypointX" placeholder="X (North)" step="0.5" style="flex: 1; padding: 8px; background: #16213e; border: 1px solid #555; border-radius: 5px; color: white;">
+                    <input type="number" id="waypointY" placeholder="Y (East)" step="0.5" style="flex: 1; padding: 8px; background: #16213e; border: 1px solid #555; border-radius: 5px; color: white;">
+                    <input type="number" id="waypointZ" placeholder="Z (Alt)" step="0.5" value="-5" style="flex: 1; padding: 8px; background: #16213e; border: 1px solid #555; border-radius: 5px; color: white;">
+                    <button onclick="addWaypoint()" style="padding: 8px 15px; background: #2ecc71; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: bold;">+ ADD</button>
+                </div>
+
+                <div id="waypointList" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px; background: #16213e; border-radius: 5px; padding: 10px;">
+                    <div style="color: #666; font-size: 12px; text-align: center;">No waypoints added</div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="executeMission()" style="flex: 1; padding: 10px; background: #e94560; border: none; border-radius: 5px; color: white; cursor: pointer; font-weight: bold; font-size: 14px;">▶ START MISSION</button>
+                    <button onclick="clearWaypoints()" style="padding: 10px 15px; background: #555; border: none; border-radius: 5px; color: white; cursor: pointer;">✖ CLEAR</button>
+                </div>
+
+                <div id="missionStatus" style="margin-top: 10px; padding: 8px; background: #16213e; border-radius: 5px; text-align: center; font-size: 12px; color: #aaa;">
+                    Ready to add waypoints
+                </div>
+            </div>
+
+            <!-- Attitude Display -->
+            <div class="attitude-display" style="margin-top: 20px;">
+                <h3 style="color: #e94560; margin-bottom: 10px;">Attitude</h3>
+                <div class="attitude-grid">
+                    <div class="attitude-item">
+                        <div class="attitude-value" id="roll">0.0°</div>
+                        <div class="attitude-label">ROLL</div>
+                    </div>
+                    <div class="attitude-item">
+                        <div class="attitude-value" id="pitch">0.0°</div>
+                        <div class="attitude-label">PITCH</div>
+                    </div>
+                    <div class="attitude-item">
+                        <div class="attitude-value" id="yaw">0.0°</div>
+                        <div class="attitude-label">YAW</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Controls -->
+        <div class="panel">
+            <h2>🎮 Controls</h2>
+
+            <div class="control-buttons">
+                <button class="btn btn-primary" onclick="sendCommand('arm')" id="btnArm">
+                    ARM
+                </button>
+                <button class="btn btn-danger" onclick="sendCommand('disarm')" id="btnDisarm">
+                    DISARM
+                </button>
+                <button class="btn btn-info" onclick="sendCommand('offboard')" id="btnOffboard">
+                    OFFBOARD MODE
+                </button>
+                <button class="btn btn-warning" onclick="sendCommand('takeoff')" id="btnTakeoff">
+                    TAKEOFF
+                </button>
+                <button class="btn btn-warning" onclick="sendCommand('land')" id="btnLand">
+                    LAND
+                </button>
+                <button class="btn btn-info" onclick="sendCommand('rtl')" id="btnRTL">
+                    RETURN TO LAUNCH
+                </button>
+            </div>
+
+            <h3 style="color: #e94560; margin-top: 30px; margin-bottom: 15px;">System Info</h3>
+            <div class="telemetry-item">
+                <span class="telemetry-label">Update Rate</span>
+                <span class="telemetry-value" id="updateRate">0 Hz</span>
+            </div>
+            <div class="telemetry-item">
+                <span class="telemetry-label">Last Update</span>
+                <span class="telemetry-value" id="lastUpdate">Never</span>
+            </div>
+
+            <h3 style="color: #e94560; margin-top: 30px; margin-bottom: 15px;">Quick Reference</h3>
+            <div style="background: #0f3460; padding: 15px; border-radius: 5px; font-size: 12px; line-height: 1.8;">
+                <p><strong>Control Sequence:</strong></p>
+                <p>1. ARM → Enable motors</p>
+                <p>2. OFFBOARD MODE → ROS control</p>
+                <p>3. TAKEOFF → Ascend to 5m</p>
+                <p>4. LAND → Descend and land</p>
+                <p>5. DISARM → Stop motors</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <script>
+        // WebSocket connection
+        const socket = io('/gcs', {
+            transports: ['websocket', 'polling']
+        });
+
+        let updateCount = 0;
+        let lastUpdateTime = Date.now();
+        let updateRate = 0;
+
+        // Connection handlers
+        socket.on('connect', () => {
+            console.log('Connected to GCS server');
+            document.getElementById('statusIndicator').classList.add('connected');
+            document.getElementById('connectionText').textContent = 'Connected';
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from GCS server');
+            document.getElementById('statusIndicator').classList.remove('connected');
+            document.getElementById('connectionText').textContent = 'Disconnected';
+        });
+
+        // Telemetry updates
+        socket.on('telemetry', (data) => {
+            updateTelemetry(data);
+            updateCount++;
+
+            // Calculate update rate
+            const now = Date.now();
+            const elapsed = (now - lastUpdateTime) / 1000;
+            if (elapsed >= 1.0) {
+                updateRate = updateCount / elapsed;
+                document.getElementById('updateRate').textContent = updateRate.toFixed(1) + ' Hz';
+                updateCount = 0;
+                lastUpdateTime = now;
+            }
+        });
+
+        function updateTelemetry(data) {
+            // Position
+            document.getElementById('posX').textContent = data.position.x.toFixed(2) + ' m';
+            document.getElementById('posY').textContent = data.position.y.toFixed(2) + ' m';
+            document.getElementById('posZ').textContent = data.position.z.toFixed(2) + ' m';
+
+            // Velocity
+            document.getElementById('velX').textContent = data.position.vx.toFixed(2) + ' m/s';
+            document.getElementById('velY').textContent = data.position.vy.toFixed(2) + ' m/s';
+            document.getElementById('velZ').textContent = data.position.vz.toFixed(2) + ' m/s';
+
+            // Altitude indicator
+            const altitude = -data.position.z;  // Convert NED to altitude
+            document.getElementById('altitudeText').textContent = altitude.toFixed(1) + 'm';
+            const altitudePercent = Math.min(100, Math.max(0, (altitude / 10) * 100));
+            document.getElementById('altitudeFill').style.height = altitudePercent + '%';
+
+            // Attitude
+            document.getElementById('roll').textContent = data.attitude.roll.toFixed(1) + '°';
+            document.getElementById('pitch').textContent = data.attitude.pitch.toFixed(1) + '°';
+            document.getElementById('yaw').textContent = data.attitude.yaw.toFixed(1) + '°';
+
+            // Status
+            const armedStatus = document.getElementById('armedStatus');
+            if (data.status.armed) {
+                armedStatus.textContent = 'ARMED';
+                armedStatus.className = 'status-badge armed';
+            } else {
+                armedStatus.textContent = 'DISARMED';
+                armedStatus.className = 'status-badge disarmed';
+            }
+
+            document.getElementById('flightMode').textContent = data.status.flight_mode;
+
+            // Battery
+            document.getElementById('battVoltage').textContent = data.battery.voltage.toFixed(1) + ' V';
+            const battPercent = document.getElementById('battPercent');
+            battPercent.textContent = data.battery.percentage.toFixed(0) + '%';
+            if (data.battery.percentage < 20) {
+                battPercent.className = 'telemetry-value danger';
+            } else if (data.battery.percentage < 50) {
+                battPercent.className = 'telemetry-value warning';
+            } else {
+                battPercent.className = 'telemetry-value';
+            }
+
+            // GPS
+            document.getElementById('gpsSats').textContent = data.gps.satellites;
+            document.getElementById('gpsLat').textContent = data.gps.lat.toFixed(6);
+            document.getElementById('gpsLon').textContent = data.gps.lon.toFixed(6);
+
+            // Last update time
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+
+            // Check video feed
+            const videoFeed = document.getElementById('videoFeed');
+            if (videoFeed.complete && videoFeed.naturalHeight !== 0) {
+                videoFeed.style.display = 'block';
+                document.getElementById('videoPlaceholder').style.display = 'none';
+            }
+        }
+
+        function sendCommand(command) {
+            console.log('Sending command:', command);
+            socket.emit('command', { command: command });
+        }
+
+        // Command acknowledgment
+        socket.on('command_ack', (data) => {
+            if (data.success) {
+                console.log('Command successful:', data.command);
+            } else {
+                console.error('Command failed:', data.command, data.error);
+                alert('Command failed: ' + data.error);
+            }
+        });
+
+        // Load video feed
+        window.onload = () => {
+            const videoFeed = document.getElementById('videoFeed');
+            videoFeed.onload = () => {
+                videoFeed.style.display = 'block';
+                document.getElementById('videoPlaceholder').style.display = 'none';
+            };
+        };
+
+        // ============================================================
+        // REMOTE CONTROL FUNCTIONS
+        // ============================================================
+
+        // Current target position (updated from telemetry)
+        let currentPosition = { x: 0, y: 0, z: -5.0, yaw: 0 };
+
+        // Update current position from telemetry
+        socket.on('telemetry', (data) => {
+            currentPosition.x = data.position.x;
+            currentPosition.y = data.position.y;
+            currentPosition.z = data.position.z;
+            currentPosition.yaw = data.attitude.yaw;
+        });
+
+        function moveAltitude(delta) {
+            // Move up or down by delta meters
+            const newZ = currentPosition.z - delta;  // NED frame: negative is up
+            console.log(`Moving altitude: current=${currentPosition.z.toFixed(2)}, new=${newZ.toFixed(2)}`);
+
+            socket.emit('command', {
+                command: 'goto',
+                x: currentPosition.x,
+                y: currentPosition.y,
+                z: newZ,
+                yaw: currentPosition.yaw
+            });
+        }
+
+        function moveHorizontal(north, east) {
+            // Move north/east by specified meters
+            const newX = currentPosition.x + north;
+            const newY = currentPosition.y + east;
+            console.log(`Moving horizontal: N=${north}m, E=${east}m`);
+
+            socket.emit('command', {
+                command: 'goto',
+                x: newX,
+                y: newY,
+                z: currentPosition.z,
+                yaw: currentPosition.yaw
+            });
+        }
+
+        function stopMovement() {
+            // Hold current position
+            console.log('Stopping movement - holding position');
+
+            socket.emit('command', {
+                command: 'goto',
+                x: currentPosition.x,
+                y: currentPosition.y,
+                z: currentPosition.z,
+                yaw: currentPosition.yaw
+            });
+        }
+
+        function rotateYaw(degrees) {
+            // Rotate by specified degrees
+            let newYaw = currentPosition.yaw + degrees;
+
+            // Normalize to -180 to 180
+            while (newYaw > 180) newYaw -= 360;
+            while (newYaw < -180) newYaw += 360;
+
+            console.log(`Rotating: ${degrees}° (new yaw: ${newYaw.toFixed(1)}°)`);
+
+            socket.emit('command', {
+                command: 'goto',
+                x: currentPosition.x,
+                y: currentPosition.y,
+                z: currentPosition.z,
+                yaw: newYaw * (Math.PI / 180)  // Convert to radians
+            });
+        }
+
+        // ============================================================
+        // MISSION PLANNER FUNCTIONS
+        // ============================================================
+
+        let waypoints = [];
+        let missionRunning = false;
+
+        function addWaypoint() {
+            const x = parseFloat(document.getElementById('waypointX').value);
+            const y = parseFloat(document.getElementById('waypointY').value);
+            const z = parseFloat(document.getElementById('waypointZ').value);
+
+            if (isNaN(x) || isNaN(y) || isNaN(z)) {
+                alert('Please enter valid numbers for all coordinates');
+                return;
+            }
+
+            waypoints.push({ x, y, z });
+            updateWaypointList();
+
+            // Clear inputs
+            document.getElementById('waypointX').value = '';
+            document.getElementById('waypointY').value = '';
+            document.getElementById('waypointZ').value = '-5';
+
+            console.log(`Added waypoint ${waypoints.length}: N=${x}, E=${y}, Z=${z}`);
+        }
+
+        function updateWaypointList() {
+            const list = document.getElementById('waypointList');
+
+            if (waypoints.length === 0) {
+                list.innerHTML = '<div style="color: #888; font-size: 14px; padding: 10px;">No waypoints added yet</div>';
+                document.getElementById('missionStatus').textContent = 'Ready to add waypoints';
+                return;
+            }
+
+            let html = '<div style="max-height: 150px; overflow-y: auto;">';
+            waypoints.forEach((wp, index) => {
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #16213e; margin-bottom: 5px; border-radius: 4px;">
+                        <span style="font-size: 14px;">
+                            <strong>${index + 1}.</strong> N:${wp.x}m, E:${wp.y}m, Alt:${-wp.z}m
+                        </span>
+                        <button onclick="removeWaypoint(${index})" style="background: #e94560; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">✖</button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            list.innerHTML = html;
+            document.getElementById('missionStatus').textContent = `${waypoints.length} waypoint(s) ready`;
+        }
+
+        function removeWaypoint(index) {
+            waypoints.splice(index, 1);
+            updateWaypointList();
+            console.log(`Removed waypoint ${index + 1}`);
+        }
+
+        function clearWaypoints() {
+            if (waypoints.length > 0 && !confirm(`Clear all ${waypoints.length} waypoints?`)) {
+                return;
+            }
+
+            waypoints = [];
+            updateWaypointList();
+            missionRunning = false;
+            console.log('All waypoints cleared');
+        }
+
+        function executeMission() {
+            if (waypoints.length === 0) {
+                alert('No waypoints to execute. Add waypoints first.');
+                return;
+            }
+
+            if (missionRunning) {
+                alert('Mission already running');
+                return;
+            }
+
+            console.log(`Starting mission with ${waypoints.length} waypoints`);
+            missionRunning = true;
+            document.getElementById('missionStatus').textContent = 'Mission executing...';
+
+            socket.emit('command', {
+                command: 'mission',
+                waypoints: waypoints
+            });
+        }
+
+        // Mission status updates from server
+        socket.on('mission_status', (data) => {
+            document.getElementById('missionStatus').textContent = data.message;
+
+            if (data.completed) {
+                missionRunning = false;
+                console.log('Mission completed');
+            }
+        });
+
+        // Initialize waypoint list on load
+        updateWaypointList();
+    </script>
+</body>
+</html>
