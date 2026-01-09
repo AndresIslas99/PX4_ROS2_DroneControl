@@ -282,6 +282,15 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 - **px4_msgs**, **px4_ros_com**: BSD 3-Clause (PX4)
 - **px4_ros2_cpp**: BSD 3-Clause (Auterion)
 
+## Author
+
+**Andres Islas Bravo**
+
+- Email: andresislas2107@gmail.com
+- GitHub: [@AndresIslas99](https://github.com/AndresIslas99)
+
+Feel free to reach out for questions, collaborations, or feedback!
+
 ## Acknowledgments
 
 - [PX4 Autopilot](https://px4.io/) - Open source flight control software
